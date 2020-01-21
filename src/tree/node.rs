@@ -128,12 +128,21 @@ pub struct InternalNode <K : PartialOrd,V> {
 impl <K,V> InternalNode<K,V>
 where K : PartialOrd + Copy, V : Copy
 {
-    pub fn new () -> Self {
+    pub fn new() -> Self {
         unsafe {
             InternalNode { num_keys : 0,
                        keys : MaybeUninit::uninit().assume_init(),
                            links : MaybeUninit::uninit().assume_init(),
             }
+        }
+    }
+
+    // copt num elements from myself to next
+    pub fn copy_n_to(&mut self, next : *mut InternalNode<K,V>, num : usize) {
+        unimplemented!();
+        // TODO
+        unsafe {
+            (*next).num_keys = self.num_keys - num;
         }
     }
 }
