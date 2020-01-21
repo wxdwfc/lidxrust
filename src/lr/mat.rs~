@@ -1,0 +1,12 @@
+// a flat vector which represents a RxC matrix
+struct Mat22 {
+    data : Vec<f64>,
+    pub nrow : usize,
+    pub ncol : usize,
+}
+
+impl Mat22 {
+    pub fn new(nr : usize, nc : usize) -> Self {
+        Mat22 { data : Vec::new(), }
+    }
+}
