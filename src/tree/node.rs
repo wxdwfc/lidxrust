@@ -137,13 +137,18 @@ where K : PartialOrd + Copy, V : Copy
         }
     }
 
-    // copt num elements from myself to next
+    // copy the first num elements from myself to "next"
     pub fn copy_n_to(&mut self, next : *mut InternalNode<K,V>, num : usize) {
-        unimplemented!();
-        // TODO
-        unsafe {
-            (*next).num_keys = self.num_keys - num;
+        assert!(num < self.num_keys);
+        let mut target : &mut InternalNode<K,V> = unsafe {
+            &mut *next
+        };
+        target.num_keys = self.num_keys - num;
+        for i in 0..target.num_keys {
+            target.keys[i] = self.keys[i + num];
+            target.links[i] = self.links[i + num].take().map(|l| l);
         }
+        self.num_keys = num;
     }
 }
 
