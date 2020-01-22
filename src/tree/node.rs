@@ -137,19 +137,21 @@ where K : PartialOrd + Copy, V : Copy
         }
     }
 
-    // copy the first num elements from myself to "next"
-    pub fn copy_n_to(&mut self, next : *mut InternalNode<K,V>, num : usize) {
+    // copy the elements after *num* from myself to "next"
+    pub fn split_n(&mut self, num : usize) -> Box<Node<K,V>> {
         assert!(num < self.num_keys);
-        let mut target : &mut InternalNode<K,V> = unsafe {
-            &mut *next
-        };
+        let mut target = InternalNode::new();
         target.num_keys = self.num_keys - num;
+
         for i in 0..target.num_keys {
             target.keys[i] = self.keys[i + num];
             target.links[i] = self.links[i + num].take().map(|l| l);
         }
         self.num_keys = num;
+
+        Box::new(Node::Internal(target))
     }
+
 }
 
 impl <K,V> Drop for InternalNode<K,V>
@@ -253,5 +255,12 @@ mod tests {
             *r = 12;
             r
         };
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_internal() {
+        let mut node = TestInter::new();
+        node.split_n(1);
     }
 }
