@@ -263,6 +263,7 @@ mod tests {
 
     #[test]
     fn test_get_ref() {
+        type TestLeaf = LeafNode<usize,usize>;
         let mut a = TestLeaf::new();
 
         a.insert(12,12);
@@ -274,7 +275,8 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_internal() {
-        type TestLeaf = LeafNode<usize,usize>;
+        //type TestLeaf = LeafNode<usize,usize>;
+        type TestInter = InternalNode<usize,usize>;
         let mut node = TestInter::new();
         node.split_n(1);
     }
