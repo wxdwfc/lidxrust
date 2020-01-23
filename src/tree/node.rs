@@ -41,6 +41,11 @@ where K : PartialOrd + Copy, V : Copy
         }
     }
 
+    pub fn first_key(&self) -> K {
+        assert!(self.num_keys >= 1);
+        self.keys[0]
+    }
+
     pub fn empty(&self) -> bool {
         self.num_keys == 0
     }
@@ -73,7 +78,7 @@ where K : PartialOrd + Copy, V : Copy
     }
 
     // \ret: whether find (bool), the newly splitted leaf
-    pub fn insert(&mut self, k : K, v : V) -> (bool, Option<Box<LeafNode<K,V>>>) {
+    pub fn insert(&mut self, k : K, v : V) -> (bool, Option<Box<Node<K,V>>>) {
         let (find, mut idx) = self.find(&k);
         if find {
             return (true, None);
@@ -82,7 +87,7 @@ where K : PartialOrd + Copy, V : Copy
         // insert
         if self.num_keys == MAX_KEYS {
             // split
-            let mut new_sib = Box::new(LeafNode::new());
+            let mut new_sib = LeafNode::new();
 
             let threshold = (MAX_KEYS + 1) / 2;
 
@@ -103,7 +108,7 @@ where K : PartialOrd + Copy, V : Copy
                 self.num_keys += 1;
             }
 
-            return (false, Some(new_sib));
+            return (false, Some(Box::new(Node::Leaf(new_sib))));
         } else {
             // we have space to accomodate the new key
             for i in (idx .. self.num_keys).rev() {
@@ -119,6 +124,7 @@ where K : PartialOrd + Copy, V : Copy
 }
 
 // the node to store a B+Trpee node (including internal and extern)
+//#[derive(Debug)]
 pub struct InternalNode <K : PartialOrd,V> {
     num_keys : usize,
     keys : [K; MAX_KEYS],
@@ -129,12 +135,44 @@ impl <K,V> InternalNode<K,V>
 where K : PartialOrd + Copy, V : Copy
 {
     pub fn new() -> Self {
-        unsafe {
-            InternalNode { num_keys : 0,
+        let mut res = unsafe {
+            let mut res = InternalNode { num_keys : 0,
                        keys : MaybeUninit::uninit().assume_init(),
-                           links : MaybeUninit::uninit().assume_init(),
+                       links : Default::default(),
+            };
+            res
+        };
+        res
+    }
+
+    pub fn new_from(k : K, n0 : Box<Node<K,V>>, n1 : Box<Node<K,V>>) -> Self {
+        let mut res = InternalNode::new();
+        res.num_keys = 1;
+        res.keys[0] = k;
+
+        res.links[0] = Some(n0);
+        res.links[1] = Some(n1);
+        res
+    }
+
+    pub fn num_keys(&self) -> usize {
+        self.num_keys
+    }
+
+    pub fn find_link(&self, k : &K) -> &Option<Box<Node<K,V>>> {
+        let mut idx = 0;
+        while idx < self.num_keys() {
+            if k < &self.keys[idx] {
+                return &self.links[idx];
             }
+            idx += 1;
         }
+        &self.links[idx]
+    }
+
+    pub fn first_key(&self) -> K {
+        assert!(self.num_keys >= 1);
+        self.keys[0]
     }
 
     // copy the elements after *num* from myself to "next"
@@ -154,20 +192,28 @@ where K : PartialOrd + Copy, V : Copy
 
 }
 
-impl <K,V> Drop for InternalNode<K,V>
-where K : PartialOrd
-{
-    fn drop(&mut self) {
-        for i in 0..self.num_keys {
-            let mut temp = self.links[i].take();
-        }
-    }
-}
 
-
+//#[derive(Debug)]
 pub enum Node<K : PartialOrd,V> {
     Internal (InternalNode<K,V>),
     Leaf (LeafNode<K,V> )
+}
+
+impl <K,V> Node <K,V>
+where K : PartialOrd + Copy, V : Copy {
+    pub fn first_key(&self) -> K {
+        match self {
+            Node::Leaf(l) => l.first_key(),
+            Node::Internal(i) => i.first_key(),
+        }
+    }
+
+    pub fn num_keys(&self) -> usize {
+        match self {
+            Node::Leaf(l) => l.num_keys(),
+            Node::Internal(i) => i.num_keys(),
+        }
+    }
 }
 
 mod tests {
@@ -212,49 +258,19 @@ mod tests {
         }
         assert_eq!(a.num_keys(), MAX_KEYS);
         let (_,new_leaf) = a.insert(733333,733333);
-        let mut nn = new_leaf.unwrap();
-        println!("{:?}", nn);
-        assert_eq!(nn.get(&733333).unwrap(),733333);
 
-        for k in keys.iter() {
-            match a.get(k) {
-                Some (v) => assert_eq!(*k, v) ,
-                None => {
-                    match nn.get(k) {
-                        Some (v) => assert_eq!(*k,v),
-                        None => assert_eq!(*k,*k + 1), // cannot happen
-                    }
-                }
-            }
-        }
+        // TODO: re-write tests
 
-        for k in keys2.iter() {
-            match a.get(k) {
-                Some (v) => assert_eq!(*k, v) ,
-                None => {
-                    match nn.get(k) {
-                        Some (v) => assert_eq!(*k,v),
-                        None => assert_eq!(*k,*k + 1), // cannot happen
-                    }
-                }
-            }
-        }
-
-        // try modify something
-        nn.get_ref(&733333).map(|v| *v += 12);
-        nn.get(&733333).map(|v| assert_eq!(v,733333 + 12));
     }
 
     #[test]
     fn test_get_ref() {
         let mut a = TestLeaf::new();
 
-        let mut r = {
-            a.insert(12,12);
-            let mut r = a.get_ref(&12).unwrap();
-            *r = 12;
-            r
-        };
+        a.insert(12,12);
+        let mut r = a.get_ref(&12).unwrap();
+        *r = 12;
+        println!("{}",r);
     }
 
     #[test]
@@ -262,5 +278,11 @@ mod tests {
     fn test_internal() {
         let mut node = TestInter::new();
         node.split_n(1);
+    }
+
+    #[test]
+    fn test_internal0() {
+        let mut node = Box::new(TestNode::Internal(TestInter::new()));
+        //let mut new_root = Box::new(Node::Internal(InternalNode::<usize,usize>::new()));
     }
 }
