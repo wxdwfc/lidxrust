@@ -1,5 +1,4 @@
-use std::mem::{self, MaybeUninit};
-use std::rc::Rc;
+use std::mem::{MaybeUninit};
 
 pub const MAX_KEYS : usize = 16; // number of keys per node
 
@@ -65,12 +64,12 @@ where K : PartialOrd + Copy, V : Copy
     // \ret: whether find (bool), the appropriate index (usize)
     pub fn find(&self, k : & K) -> (bool,usize) {
         let mut idx = 0;
-        while (idx < self.num_keys && self.keys[idx] < *k) {
+        while idx < self.num_keys && self.keys[idx] < *k {
             idx += 1;
         }
 
         // the key has already been there
-        if (idx < self.num_keys && *k == self.keys[idx]) {
+        if idx < self.num_keys && *k == self.keys[idx] {
             return (true, idx);
         }
         return (false, idx);
@@ -218,12 +217,11 @@ where K : PartialOrd + Copy, V : Copy {
 
 mod tests {
     use super::*;
-    type TestNode = Node<usize,usize>;
-    type TestInter = InternalNode<usize,usize>;
-    type TestLeaf = LeafNode<usize,usize>;
 
     #[test]
     fn test_basic() {
+        type TestLeaf = LeafNode<usize,usize>;
+
         let mut a = TestLeaf::new();
 
         let keys = [2,3,5,12,4,635];
@@ -276,12 +274,16 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_internal() {
+        type TestLeaf = LeafNode<usize,usize>;
         let mut node = TestInter::new();
         node.split_n(1);
     }
 
     #[test]
     fn test_internal0() {
+        type TestNode = Node<usize,usize>;
+        type TestInter = InternalNode<usize,usize>;
+
         let mut node = Box::new(TestNode::Internal(TestInter::new()));
         //let mut new_root = Box::new(Node::Internal(InternalNode::<usize,usize>::new()));
     }

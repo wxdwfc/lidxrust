@@ -51,7 +51,6 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
             ).unwrap();
             idx -= 1;
         }
-        return None;
     }
 }
 
