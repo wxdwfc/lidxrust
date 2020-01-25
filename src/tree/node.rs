@@ -135,9 +135,9 @@ where K : PartialOrd + Copy, V : Copy
 {
     pub fn new() -> Self {
         let mut res = unsafe {
-            let mut res = InternalNode { num_keys : 0,
-                       keys : MaybeUninit::uninit().assume_init(),
-                       links : Default::default(),
+            let res = InternalNode { num_keys : 0,
+                                     keys : MaybeUninit::uninit().assume_init(),
+                                     links : Default::default(),
             };
             res
         };
@@ -286,7 +286,7 @@ mod tests {
         type TestNode = Node<usize,usize>;
         type TestInter = InternalNode<usize,usize>;
 
-        let mut node = Box::new(TestNode::Internal(TestInter::new()));
+        let node = Box::new(TestNode::Internal(TestInter::new()));
         //let mut new_root = Box::new(Node::Internal(InternalNode::<usize,usize>::new()));
     }
 }
