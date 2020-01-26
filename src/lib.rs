@@ -15,3 +15,10 @@ impl basic_type::Trainiable for usize {
         *self as c_double
     }
 }
+
+
+impl basic_type::Trainiable for f64 {
+    fn convert_to_cdouble(&self) -> c_double {
+        *self as c_double
+    }
+}
