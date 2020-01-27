@@ -189,6 +189,13 @@ where K : PartialOrd + Copy, V : Copy
         Box::new(Node::Internal(target))
     }
 
+    pub fn find_new_pos(&self, k : &K) -> usize {
+        let mut idx : usize = 0;
+        while idx < self.num_keys() && self.keys[idx] <= *k {
+            idx += 1;
+        }
+        idx
+    }
 }
 
 

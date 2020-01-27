@@ -22,6 +22,7 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
             match **n {
                 Node::Internal(_) => unreachable!(),
                 Node::Leaf(ref l) => {
+                    println!("{:?}",l);
                     l.get(&key)
                 }
             }
@@ -51,6 +52,11 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
             ).unwrap();
             idx -= 1;
         }
+    }
+
+    fn insert_to_internal(key : K, val : V, target :  &Box<node::Node<K,V>>, depth : usize) -> Option<Box<node::Node<K,V>>> {
+        unimplemented!();
+        None
     }
 }
 
@@ -105,6 +111,7 @@ mod tests {
         }
 
         for i in 0..17 {
+            println!("try get {}",i);
             let v = t.get(i);
             assert_ne!(v,None);
             assert_eq!(v.unwrap(), i);
