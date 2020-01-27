@@ -54,10 +54,6 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
         }
     }
 
-    fn insert_to_internal(key : K, val : V, target :  &Box<node::Node<K,V>>, depth : usize) -> Option<Box<node::Node<K,V>>> {
-        unimplemented!();
-        None
-    }
 }
 
 // put method
@@ -95,6 +91,15 @@ where K : PartialOrd + Copy, V : Copy
             // end one-layer case
         }
         // end insert
+    }
+
+    fn insert_to_internal(key : K, val : V, target :  &Box<node::Node<K,V>>, depth : usize) -> Option<Box<node::Node<K,V>>> {
+        unimplemented!();
+
+        match target.as_mut() {
+
+        }
+        None
     }
 }
 
