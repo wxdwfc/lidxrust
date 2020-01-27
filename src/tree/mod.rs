@@ -56,10 +56,28 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
 
 }
 
+fn insert_to_internal<K,V>(key : K, val : V, target :  &mut Box<node::Node<K,V>>, depth : usize)
+                      -> Option<Box<node::Node<K,V>>>
+where K : PartialOrd + Copy, V : Copy
+{
+    match target.as_mut() {
+        Node::Internal(_) => {
+            unimplemented!();
+        }
+
+        Node::Leaf(ref mut l) => {
+            let (_, nl) = l.insert(key,val);
+            nl
+        }
+    }
+}
+
 // put method
 impl <K,V> BTree<K,V>
 where K : PartialOrd + Copy, V : Copy
 {
+
+
     pub fn insert(&mut self, key : K, value : V) {
         // the B+Tree is empty
         {
@@ -69,38 +87,19 @@ where K : PartialOrd + Copy, V : Copy
             }
         }
 
-        if self.depth == 0 {
-            // insert to the first layer
-            //let root_ref : &mut Option<Box<Node<K,V>>> = &mut self.root;
-            let new_node = self.root.as_mut().map(|node| {
-                match node.as_mut() {
-                    Node::Internal(_) => unreachable!(),
-                    Node::Leaf(ref mut l) => {
-                        let (_, nl) = l.insert(key,value);
-                        nl
-                    },
-                }
-            } ).and_then(|n| n);
+        let new_node = insert_to_internal(key, value, self.root.as_mut().unwrap(), 0);
 
-            new_node.map(|n| {
-                self.root = Some(Box::new(Node::Internal(InternalNode::new_from(
-                    n.first_key(), self.root.take().unwrap(),n))));
-                self.depth += 1;
-            });
+        new_node.map(|n| {
+            self.root = Some(Box::new(Node::Internal(InternalNode::new_from(
+                n.first_key(), self.root.take().unwrap(),n))));
+            self.depth += 1;
+        });
 
-            // end one-layer case
-        }
+        // end one-layer case
         // end insert
     }
 
-    fn insert_to_internal(key : K, val : V, target :  &Box<node::Node<K,V>>, depth : usize) -> Option<Box<node::Node<K,V>>> {
-        unimplemented!();
 
-        match target.as_mut() {
-
-        }
-        None
-    }
 }
 
 
