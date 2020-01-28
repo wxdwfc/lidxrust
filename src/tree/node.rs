@@ -172,11 +172,6 @@ where K : PartialOrd + Copy, V : Copy
         &self.links[idx]
     }
 
-    pub fn first_key(&self) -> K {
-        assert!(self.num_keys >= 1);
-        self.keys[0]
-    }
-
     pub fn end_key(&self) -> K {
         self.keys[self.num_keys() - 1]
     }
@@ -222,10 +217,6 @@ where K : PartialOrd + Copy, V : Copy
         self.num_keys += 1;
     }
 
-    pub fn set_first_key(&mut self, k : K) {
-        self.keys[0] = k;
-    }
-
     // copy the elements after *num* from myself to "next"
     pub fn split_n(&mut self, num : usize) -> Box<Node<K,V>> {
         assert!(num < self.num_keys);
@@ -262,7 +253,7 @@ where K : PartialOrd + Copy, V : Copy {
     pub fn first_key(&self) -> K {
         match self {
             Node::Leaf(l) => l.first_key(),
-            Node::Internal(i) => i.first_key(),
+            Node::Internal(_) => unreachable!() ,
         }
     }
 
@@ -284,13 +275,6 @@ where K : PartialOrd + Copy, V : Copy {
         match self {
             Node::Leaf(_) => unreachable!(),
             Node::Internal(i) => { i.up_key = k },
-        }
-    }
-
-    pub fn set_first_key(&mut self, k : K) {
-        match self {
-            Node::Leaf(_) => unreachable!(),
-            Node::Internal(i) => i.set_first_key(k),
         }
     }
 
@@ -355,7 +339,7 @@ mod tests {
             }
         }
         assert_eq!(a.num_keys(), MAX_KEYS);
-        let (_,new_leaf) = a.insert(733333,733333);
+        //let (_,new_leaf) = a.insert(733333,733333);
 
         // TODO: re-write tests
 
@@ -367,7 +351,7 @@ mod tests {
         let mut a = TestLeaf::new();
 
         a.insert(12,12);
-        let mut r = a.get_ref(&12).unwrap();
+        let r = a.get_ref(&12).unwrap();
         *r = 12;
         println!("{}",r);
     }
@@ -386,7 +370,7 @@ mod tests {
         type TestNode = Node<usize,usize>;
         type TestInter = InternalNode<usize,usize>;
 
-        let node = Box::new(TestNode::Internal(TestInter::new()));
+        Box::new(TestNode::Internal(TestInter::new()));
         //let mut new_root = Box::new(Node::Internal(InternalNode::<usize,usize>::new()));
     }
 }
