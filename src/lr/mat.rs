@@ -43,6 +43,7 @@ where T : std::default::Default + Copy
 }
 
 mod tests {
+    #[cfg(test)]
     use super::*;
 
     #[test]

@@ -9,6 +9,9 @@ use tree::node::*;
 fn main() {
     println!("Hello, world!");
 
+    for i in (0..6_i32).rev() {
+        println!("{:?}",i);
+    }
 
     //let mut new_root = Box::new(Node::<usize,usize>::Internal(InternalNode::<usize,usize>::new()));
 

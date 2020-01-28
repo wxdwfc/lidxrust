@@ -127,14 +127,14 @@ where K : PartialOrd + Copy, V : Copy
 pub struct InternalNode <K : PartialOrd,V> {
     num_keys : usize,
     keys : [K; MAX_KEYS],
-    links : [Option<Box<Node<K,V>>>; MAX_KEYS],
+    links : [Option<Box<Node<K,V>>>; MAX_KEYS + 1],
 }
 
 impl <K,V> InternalNode<K,V>
 where K : PartialOrd + Copy, V : Copy
 {
     pub fn new() -> Self {
-        let mut res = unsafe {
+        let res = unsafe {
             let res = InternalNode { num_keys : 0,
                                      keys : MaybeUninit::uninit().assume_init(),
                                      links : Default::default(),
@@ -174,6 +174,27 @@ where K : PartialOrd + Copy, V : Copy
         self.keys[0]
     }
 
+    pub fn insert(&mut self, key : K, val : V) -> Option<Box<Node<K,V>>> {
+        let pos = self.find_target_pos(&key);
+        let new_node = self.links[pos].as_mut().map(|n| n.insert(key,val)).and_then(|n| n);
+
+        new_node.map(|n| {
+            // insert the new node to myself
+            if self.num_keys == MAX_KEYS {
+                unimplemented!();
+            } else {
+                for i in (pos+1..self.num_keys()+1).rev() {
+                    self.keys[i] = self.keys[i - 1];
+                    self.links[i + 1] = self.links[i].take();
+                }
+                self.keys[pos] = n.first_key();
+                self.links[pos + 1] = Some(n);
+                self.num_keys += 1;
+            }
+        });
+        None
+    }
+
     // copy the elements after *num* from myself to "next"
     pub fn split_n(&mut self, num : usize) -> Box<Node<K,V>> {
         assert!(num < self.num_keys);
@@ -189,12 +210,21 @@ where K : PartialOrd + Copy, V : Copy
         Box::new(Node::Internal(target))
     }
 
-    pub fn find_new_pos(&self, k : &K) -> usize {
+    pub fn find_target_pos(&self, k : &K) -> usize {
         let mut idx : usize = 0;
         while idx < self.num_keys() && self.keys[idx] <= *k {
             idx += 1;
         }
         idx
+    }
+
+
+    pub fn get_link(&mut self, pos : usize) -> &mut Option<Box<Node<K,V>>> {
+        &mut self.links[pos]
+    }
+
+    pub fn find_target_link(&mut self, k : &K) -> &mut Option<Box<Node<K,V>>> {
+        &mut self.links[self.find_target_pos(k)]
     }
 }
 
@@ -220,9 +250,22 @@ where K : PartialOrd + Copy, V : Copy {
             Node::Internal(i) => i.num_keys(),
         }
     }
+
+    pub fn insert(&mut self, key : K,val : V,) -> Option<Box<Self>> {
+        match self {
+            Node::Internal(ref mut inner) => {
+                inner.insert(key, val)
+            }
+            Node::Leaf(ref mut l) => {
+                let (_, nl) = l.insert(key,val);
+                nl
+            }
+        }
+    }
 }
 
 mod tests {
+    #[cfg(test)]
     use super::*;
 
     #[test]

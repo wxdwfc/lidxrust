@@ -11,6 +11,7 @@ impl<K,V> KVPair<K,V> {
 }
 
 mod tests {
+    #[cfg(test)]
     use super::*;
 
     #[test]

@@ -22,7 +22,7 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
             match **n {
                 Node::Internal(_) => unreachable!(),
                 Node::Leaf(ref l) => {
-                    println!("{:?}",l);
+                    //println!("{:?}",l);
                     l.get(&key)
                 }
             }
@@ -56,22 +56,6 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
 
 }
 
-fn insert_to_internal<K,V>(key : K, val : V, target :  &mut Box<node::Node<K,V>>, depth : usize)
-                      -> Option<Box<node::Node<K,V>>>
-where K : PartialOrd + Copy, V : Copy
-{
-    match target.as_mut() {
-        Node::Internal(_) => {
-            unimplemented!();
-        }
-
-        Node::Leaf(ref mut l) => {
-            let (_, nl) = l.insert(key,val);
-            nl
-        }
-    }
-}
-
 // put method
 impl <K,V> BTree<K,V>
 where K : PartialOrd + Copy, V : Copy
@@ -87,7 +71,7 @@ where K : PartialOrd + Copy, V : Copy
             }
         }
 
-        let new_node = insert_to_internal(key, value, self.root.as_mut().unwrap(), 0);
+        let new_node = self.root.as_mut().unwrap().insert(key,value);
 
         new_node.map(|n| {
             self.root = Some(Box::new(Node::Internal(InternalNode::new_from(
@@ -102,24 +86,29 @@ where K : PartialOrd + Copy, V : Copy
 
 }
 
-
 mod tests {
+    #[cfg(test)]
     use super::*;
+
     #[test]
     fn basic() {
         let mut t = BTree::<usize,usize>::new();
-        for i in 0..17 {
-            println!("insert {} start",i);
+
+        let test_num = 1024;
+
+        for i in 0..test_num {
+            //println!("insert {} start",i);
             t.insert(i, i);
-            println!("insert {} done",i);
+            //println!("insert {} done",i);
         }
 
-        for i in 0..17 {
-            println!("try get {}",i);
+        for i in 0..test_num {
+            //println!("try get {}",i);
             let v = t.get(i);
             assert_ne!(v,None);
             assert_eq!(v.unwrap(), i);
         }
+
         //assert_eq!(0,-1);
     }
 }

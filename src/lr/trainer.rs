@@ -102,6 +102,12 @@ pub fn sort_two_array<T: PartialOrd,T2 : PartialOrd>(data: &mut [T], data1 : &mu
 }
 
 mod tests {
+
+    fn approx_equal(a: f64, b: f64, p : f64) -> bool {
+        (a - b).abs() <= p
+    }
+
+    #[cfg(test)]
     use super::*;
 
     #[test]
@@ -142,7 +148,7 @@ mod tests {
         }
 
         let (w,b) = t.train_optimal();
-        //assert_eq!(w,test_w);
-        //assert_eq!(b,test_b);
+        assert_eq!(true,approx_equal(w, test_w, 0.005_f64));
+        assert_eq!(true,approx_equal(b, test_b, 0.005_f64));
     }
 }
