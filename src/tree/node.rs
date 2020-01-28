@@ -2,7 +2,8 @@ use std::mem::{MaybeUninit};
 
 pub const MAX_KEYS : usize = 16; // number of keys per node
 
-fn range_assign<T : Copy> (src : & [T;MAX_KEYS], target : &mut [T;MAX_KEYS], start_src : usize, start_target : usize, num : usize) {
+fn range_assign<T : Copy> (src : & [T;MAX_KEYS], target : &mut [T;MAX_KEYS],
+                           start_src : usize, start_target : usize, num : usize) {
     for idx in 0 .. num {
         target[start_target + idx] = src[start_src + idx];
     }
@@ -216,15 +217,6 @@ where K : PartialOrd + Copy, V : Copy
             idx += 1;
         }
         idx
-    }
-
-
-    pub fn get_link(&mut self, pos : usize) -> &mut Option<Box<Node<K,V>>> {
-        &mut self.links[pos]
-    }
-
-    pub fn find_target_link(&mut self, k : &K) -> &mut Option<Box<Node<K,V>>> {
-        &mut self.links[self.find_target_pos(k)]
     }
 }
 

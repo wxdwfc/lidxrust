@@ -3,13 +3,12 @@ pub mod node;
 use node::*;
 
 pub struct BTree<K : PartialOrd,V> {
-    depth : usize,
     root  : Option<Box<node::Node<K,V>>>,
 }
 
 impl<K : PartialOrd,V> BTree<K,V> {
     pub fn new() -> Self {
-        BTree { depth : 0, root : None, }
+        BTree { root : None, }
     }
 }
 
@@ -22,7 +21,7 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
             match **n {
                 Node::Internal(_) => unreachable!(),
                 Node::Leaf(ref l) => {
-                    //println!("{:?}",l);
+                    println!("{:?}",l);
                     l.get(&key)
                 }
             }
@@ -30,28 +29,25 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
     }
 
     pub fn find_leaf_page(&self, key : K) -> Option<&Box<node::Node<K,V>>> {
-        let mut idx = self.depth;
-        let mut cur_node : &Option<Box<node::Node<K,V>>> = &self.root;
-        loop {
-            if idx == 0 {
-                return cur_node.as_ref().map(|n| {
-                    match **n {
-                        Node::Internal(_) => unreachable!(),
-                        Node::Leaf(_) => cur_node,
-                    } }
-                ).and_then(|n| n.as_ref());
-            }
 
-            cur_node = cur_node.as_ref().map(|n| {
-                match **n {
-                    Node::Internal(ref i) => {
-                        i.find_link(&key)
-                    },
-                    Node::Leaf(_) => unreachable!(),
-                } }
-            ).unwrap();
-            idx -= 1;
+        let mut cur_node : &Option<Box<node::Node<K,V>>> = &self.root;
+
+        loop {
+            cur_node = match cur_node.as_ref() {
+                Some(n) => {
+                    match **n {
+                        Node::Internal(ref i) => {
+                            i.find_link(&key)
+                        },
+                        Node::Leaf(_) => {
+                            return cur_node.as_ref();
+                        }
+                    }
+                },
+                None => { break; }
+            }
         }
+        None
     }
 
 }
@@ -71,12 +67,13 @@ where K : PartialOrd + Copy, V : Copy
             }
         }
 
+        // insert to root
         let new_node = self.root.as_mut().unwrap().insert(key,value);
 
+        // update root if possible
         new_node.map(|n| {
             self.root = Some(Box::new(Node::Internal(InternalNode::new_from(
                 n.first_key(), self.root.take().unwrap(),n))));
-            self.depth += 1;
         });
 
         // end one-layer case
@@ -94,7 +91,7 @@ mod tests {
     fn basic() {
         let mut t = BTree::<usize,usize>::new();
 
-        let test_num = 1024;
+        let test_num = 128;
 
         for i in 0..test_num {
             //println!("insert {} start",i);

@@ -103,6 +103,7 @@ pub fn sort_two_array<T: PartialOrd,T2 : PartialOrd>(data: &mut [T], data1 : &mu
 
 mod tests {
 
+    #[cfg(test)]
     fn approx_equal(a: f64, b: f64, p : f64) -> bool {
         (a - b).abs() <= p
     }
