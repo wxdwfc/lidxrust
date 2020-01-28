@@ -21,7 +21,7 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
             match **n {
                 Node::Internal(_) => unreachable!(),
                 Node::Leaf(ref l) => {
-                    println!("{:?}",l);
+                    //println!("{:?}",l);
                     l.get(&key)
                 }
             }
@@ -73,7 +73,7 @@ where K : PartialOrd + Copy, V : Copy
         // update root if possible
         new_node.map(|n| {
             self.root = Some(Box::new(Node::Internal(InternalNode::new_from(
-                n.first_key(), self.root.take().unwrap(),n))));
+                n.get_up_key(), self.root.take().unwrap(),n))));
         });
 
         // end one-layer case
@@ -91,19 +91,20 @@ mod tests {
     fn basic() {
         let mut t = BTree::<usize,usize>::new();
 
-        let test_num = 128;
+        let test_num = 40960;
 
         for i in 0..test_num {
             //println!("insert {} start",i);
-            t.insert(i, i);
+            t.insert(i, i + 73);
             //println!("insert {} done",i);
         }
 
         for i in 0..test_num {
-            //println!("try get {}",i);
+            println!("try get {}",i);
             let v = t.get(i);
             assert_ne!(v,None);
-            assert_eq!(v.unwrap(), i);
+            assert_eq!(v.unwrap(), i + 73);
+            println!("try get {} done",i);
         }
 
         //assert_eq!(0,-1);

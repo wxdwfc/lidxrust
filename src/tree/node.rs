@@ -129,6 +129,7 @@ pub struct InternalNode <K : PartialOrd,V> {
     num_keys : usize,
     keys : [K; MAX_KEYS],
     links : [Option<Box<Node<K,V>>>; MAX_KEYS + 1],
+    up_key : K, // a temporal store for storing upper key
 }
 
 impl <K,V> InternalNode<K,V>
@@ -139,6 +140,7 @@ where K : PartialOrd + Copy, V : Copy
             let res = InternalNode { num_keys : 0,
                                      keys : MaybeUninit::uninit().assume_init(),
                                      links : Default::default(),
+                                     up_key : MaybeUninit::uninit().assume_init(),
             };
             res
         };
@@ -175,25 +177,53 @@ where K : PartialOrd + Copy, V : Copy
         self.keys[0]
     }
 
+    pub fn end_key(&self) -> K {
+        self.keys[self.num_keys() - 1]
+    }
+
     pub fn insert(&mut self, key : K, val : V) -> Option<Box<Node<K,V>>> {
-        let pos = self.find_target_pos(&key);
+        let mut pos = self.find_target_pos(&key);
         let new_node = self.links[pos].as_mut().map(|n| n.insert(key,val)).and_then(|n| n);
 
         new_node.map(|n| {
             // insert the new node to myself
             if self.num_keys == MAX_KEYS {
-                unimplemented!();
-            } else {
-                for i in (pos+1..self.num_keys()+1).rev() {
-                    self.keys[i] = self.keys[i - 1];
-                    self.links[i + 1] = self.links[i].take();
+                let threshold = (MAX_KEYS + 1) / 2;
+                let mut new_node = self.split_n(threshold);
+                self.num_keys = threshold - 1;
+
+                let up_key = self.keys[threshold - 1];
+
+                if n.get_up_key() > up_key {
+                    // insert to the new node
+                    pos -= threshold;
+                    new_node.insert_new_node(n, pos);
+                } else {
+                    // insert to myself
+                    self.insert_new_node(n, pos);
                 }
-                self.keys[pos] = n.first_key();
-                self.links[pos + 1] = Some(n);
-                self.num_keys += 1;
+                new_node.set_up_key(up_key);
+                Some(new_node)
+            } else {
+                self.insert_new_node(n,pos);
+                None
             }
-        });
-        None
+        }).and_then(|n| n)
+    }
+
+    pub fn insert_new_node(&mut self, node : Box<Node<K,V>>, pos : usize) {
+        assert!(pos <= self.num_keys());
+        for i in (pos+1..self.num_keys()+1).rev() {
+            self.keys[i] = self.keys[i - 1];
+            self.links[i + 1] = self.links[i].take();
+        }
+        self.keys[pos] = node.get_up_key();
+        self.links[pos + 1] = Some(node);
+        self.num_keys += 1;
+    }
+
+    pub fn set_first_key(&mut self, k : K) {
+        self.keys[0] = k;
     }
 
     // copy the elements after *num* from myself to "next"
@@ -203,10 +233,10 @@ where K : PartialOrd + Copy, V : Copy
         target.num_keys = self.num_keys - num;
 
         for i in 0..target.num_keys {
-            target.keys[i] = self.keys[i + num];
-            target.links[i] = self.links[i + num].take().map(|l| l);
+            target.keys[i] = self.keys[num + i];
+            target.links[i] = self.links[num + i].take().map(|l| l);
         }
-        self.num_keys = num;
+        target.links[target.num_keys] = self.links[self.num_keys].take().map(|l| l);
 
         Box::new(Node::Internal(target))
     }
@@ -240,6 +270,34 @@ where K : PartialOrd + Copy, V : Copy {
         match self {
             Node::Leaf(l) => l.num_keys(),
             Node::Internal(i) => i.num_keys(),
+        }
+    }
+
+    pub fn get_up_key(&self) -> K {
+        match self {
+            Node::Leaf(l) => l.first_key(),
+            Node::Internal(i) => i.up_key,
+        }
+    }
+
+    pub fn set_up_key(&mut self, k : K) {
+        match self {
+            Node::Leaf(_) => unreachable!(),
+            Node::Internal(i) => { i.up_key = k },
+        }
+    }
+
+    pub fn set_first_key(&mut self, k : K) {
+        match self {
+            Node::Leaf(_) => unreachable!(),
+            Node::Internal(i) => i.set_first_key(k),
+        }
+    }
+
+    pub fn insert_new_node(&mut self, node : Box<Node<K,V>>, pos : usize) {
+        match self {
+            Node::Leaf(_) => unreachable!(),
+            Node::Internal(i) => i.insert_new_node(node, pos),
         }
     }
 
