@@ -2,11 +2,11 @@ pub mod node;
 
 use node::*;
 
-pub struct BTree<K : PartialOrd,V> {
+pub struct BTree<K : PartialOrd + std::fmt::Debug ,V> {
     root  : Option<Box<node::Node<K,V>>>,
 }
 
-impl<K : PartialOrd,V> BTree<K,V> {
+impl<K : PartialOrd + std::fmt::Debug ,V> BTree<K,V> {
     pub fn new() -> Self {
         BTree { root : None, }
     }
@@ -21,7 +21,6 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
             match **n {
                 Node::Internal(_) => unreachable!(),
                 Node::Leaf(ref l) => {
-                    //println!("{:?}",l);
                     l.get(&key)
                 }
             }
@@ -54,7 +53,7 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
 
 // put method
 impl <K,V> BTree<K,V>
-where K : PartialOrd + Copy, V : Copy
+where K : PartialOrd + Copy + std::fmt::Debug, V : Copy
 {
 
 
@@ -108,5 +107,40 @@ mod tests {
         }
 
         //assert_eq!(0,-1);
+    }
+
+    extern crate rand;
+    use rand::{seq::SliceRandom, SeedableRng, StdRng,thread_rng}; // 0.6.5
+
+    #[test]
+    fn stress() {
+
+        let mut key_set : Vec<usize> = Vec::new();      //
+        let key_num = 1000000;                          //
+                                                        //
+        for i in 0..key_num {                           //
+            key_set.push(i);                            //
+        }                                               //
+                                                        //
+        //let mut rng = thread_rng();                     //
+        //let seed = [0; 32];
+        //let mut rng : StdRng = SeedableRng::from_seed(seed);
+        let mut rng = thread_rng();
+                                                        //
+        for _ in 0..5 {                                 //
+            //key_set.as_mut_slice().shuffle(&mut rng);   //
+            //rng.shuffle(key_set.as_mut_slice());
+            key_set.shuffle(&mut rng);
+            let mut t = BTree::<usize,usize>::new();    //
+                                                        //
+            for k in &key_set {                         //
+                t.insert(*k, k + 73);                   //
+            }                                           //
+                                                        //
+            for k in &key_set {                         //
+                assert_eq!(t.get(*k).unwrap(), k + 73); //
+            }                                           //
+                                                        //
+        }                                               //
     }
 }

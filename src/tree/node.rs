@@ -18,7 +18,7 @@ pub struct LeafNode <K,V> {
 
 // methods for leaf
 impl <K,V> LeafNode<K,V>
-where K : PartialOrd + Copy, V : Copy
+where K : PartialOrd + Copy + std::fmt::Debug, V : Copy
 {
     pub fn get_ref(&mut self, k :& K) -> Option<&mut V> {
         let (find,idx) = self.find(k);
@@ -30,7 +30,7 @@ where K : PartialOrd + Copy, V : Copy
 }
 
 impl <K,V> LeafNode<K,V>
-where K : PartialOrd + Copy, V : Copy
+where K : PartialOrd + Copy + std::fmt::Debug, V : Copy
 {
     pub fn new() -> Self {
         unsafe {
@@ -77,6 +77,18 @@ where K : PartialOrd + Copy, V : Copy
 
     }
 
+    fn insert_non_full(&mut self, k : K, val : V, pos : usize) {
+        assert!(self.num_keys < MAX_KEYS);
+
+        for i in (pos .. self.num_keys).rev() {
+            self.keys[i + 1] = self.keys[i];
+            self.values[i + 1] = self.values[i];
+        }
+        self.keys[pos] = k;
+        self.values[pos] = val;
+        self.num_keys += 1;
+    }
+
     // \ret: whether find (bool), the newly splitted leaf
     pub fn insert(&mut self, k : K, v : V) -> (bool, Option<Box<Node<K,V>>>) {
         let (find, mut idx) = self.find(&k);
@@ -99,33 +111,24 @@ where K : PartialOrd + Copy, V : Copy
 
             if idx >= threshold {
                 idx -= threshold;
-                new_sib.keys[idx] = k;
-                new_sib.values[idx] = v;
-                new_sib.num_keys += 1;
+                new_sib.insert_non_full(k, v, idx);
+
             } else {
-                self.keys[idx] = k;
-                self.values[idx] = v;
-                self.num_keys += 1;
+                self.insert_non_full(k, v, idx);
             }
 
             return (false, Some(Box::new(Node::Leaf(new_sib))));
         } else {
             // we have space to accomodate the new key
-            for i in (idx .. self.num_keys).rev() {
-                self.keys[i + 1] = self.keys[i];
-                self.values[i + 1] = self.values[i];
-            }
-            self.num_keys += 1;
-            self.keys[idx] = k;
-            self.values[idx] = v;
+            self.insert_non_full(k, v, idx);
         }
         return (false, None);
     }
 }
 
 // the node to store a B+Trpee node (including internal and extern)
-//#[derive(Debug)]
-pub struct InternalNode <K : PartialOrd,V> {
+#[derive(Debug)]
+pub struct InternalNode <K : PartialOrd + std::fmt::Debug ,V> {
     num_keys : usize,
     keys : [K; MAX_KEYS],
     links : [Option<Box<Node<K,V>>>; MAX_KEYS + 1],
@@ -133,7 +136,7 @@ pub struct InternalNode <K : PartialOrd,V> {
 }
 
 impl <K,V> InternalNode<K,V>
-where K : PartialOrd + Copy, V : Copy
+where K : PartialOrd + Copy + std::fmt::Debug, V : Copy
 {
     pub fn new() -> Self {
         let res = unsafe {
@@ -189,7 +192,7 @@ where K : PartialOrd + Copy, V : Copy
 
                 let up_key = self.keys[threshold - 1];
 
-                if n.get_up_key() > up_key {
+                if n.insert_with_me(key, up_key) {
                     // insert to the new node
                     pos -= threshold;
                     new_node.insert_new_node(n, pos);
@@ -198,6 +201,7 @@ where K : PartialOrd + Copy, V : Copy
                     self.insert_new_node(n, pos);
                 }
                 new_node.set_up_key(up_key);
+                assert!(new_node.get_up_key() == up_key);
                 Some(new_node)
             } else {
                 self.insert_new_node(n,pos);
@@ -242,32 +246,43 @@ where K : PartialOrd + Copy, V : Copy
 }
 
 
-//#[derive(Debug)]
-pub enum Node<K : PartialOrd,V> {
+#[derive(Debug)]
+pub enum Node<K : PartialOrd + std::fmt::Debug,V> {
     Internal (InternalNode<K,V>),
     Leaf (LeafNode<K,V> )
 }
 
 impl <K,V> Node <K,V>
-where K : PartialOrd + Copy, V : Copy {
+where K : PartialOrd + Copy + std::fmt::Debug, V : Copy {
     pub fn first_key(&self) -> K {
         match self {
             Node::Leaf(l) => l.first_key(),
-            Node::Internal(_) => unreachable!() ,
+            Node::Internal(_) => unreachable!(),
         }
     }
 
     pub fn num_keys(&self) -> usize {
         match self {
             Node::Leaf(l) => l.num_keys(),
-            Node::Internal(i) => i.num_keys(),
+            Node::Internal(i) => i.num_keys,
         }
     }
 
     pub fn get_up_key(&self) -> K {
         match self {
-            Node::Leaf(l) => l.first_key(),
-            Node::Internal(i) => i.up_key,
+            Node::Leaf(l) => {
+               l.first_key()
+            },
+            Node::Internal(i) => {
+                i.up_key
+            },
+        }
+    }
+
+    pub fn insert_with_me(&self, key : K, upkey : K) -> bool {
+        match self {
+            Node::Leaf(l) => { l.first_key() >= upkey },
+            Node::Internal(_) => { key > upkey },
         }
     }
 
