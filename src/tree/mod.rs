@@ -110,7 +110,8 @@ mod tests {
     }
 
     extern crate rand;
-    use rand::{seq::SliceRandom, SeedableRng, StdRng,thread_rng}; // 0.6.5
+    #[allow(unused_imports)]
+    use rand::{seq::SliceRandom, SeedableRng,thread_rng}; // 0.6.5
 
     #[test]
     fn stress() {

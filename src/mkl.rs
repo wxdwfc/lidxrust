@@ -2,6 +2,7 @@ extern crate libc;
 
 pub use libc::{c_int,c_char,c_double};
 
+#[allow(non_camel_case_types)]
 pub type lapack_int = c_int;
 
 // reference http://www.netlib.org/lapack/explore-html/dc/d19/a01190_source.html
