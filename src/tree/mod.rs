@@ -12,21 +12,61 @@ impl<K : PartialOrd + std::fmt::Debug ,V> BTree<K,V> {
     }
 }
 
-// get methods
-impl <K,V> BTree<K,V>
+// trait implementations
+use crate::KV;
+
+impl<K,V> KV<K,V> for BTree<K,V>
 where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
 {
-    pub fn get(&self, key : K) -> Option<V> {
-        self.find_leaf_page(key).map(|n| {
+    fn get(&self, key : &K) -> Option<V> {
+        self.find_leaf_page(*key).map(|n| {
             match **n {
                 Node::Internal(_) => unreachable!(),
                 Node::Leaf(ref l) => {
-                    l.get(&key)
+                    l.get(key)
                 }
             }
         }).and_then(|n| n)
     }
 
+    fn get_as_ref(&self, key : &K) -> Option<&V> {
+        self.find_leaf_page(*key).map(|n| {
+            match **n {
+                Node::Internal(_) => unreachable!(),
+                Node::Leaf(ref l) => {
+                    l.get_as_ref(key)
+                }
+            }
+        }).and_then(|n| n)
+    }
+
+    fn insert(&mut self, key : K, value : V) {
+        // the B+Tree is empty
+        {
+            match &self.root {
+                None => { self.root = Some(Box::new(Node::Leaf(LeafNode::new()))); },
+                _ => {},
+            }
+        }
+
+        // insert to root
+        let new_node = self.root.as_mut().unwrap().insert(key,value);
+
+        // update root if possible
+        new_node.map(|n| {
+            self.root = Some(Box::new(Node::Internal(InternalNode::new_from(
+                n.get_up_key(), self.root.take().unwrap(),n))));
+        });
+
+        // end one-layer case
+        // end insert
+    }
+}
+
+// get methods
+impl <K,V> BTree<K,V>
+where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
+{
     pub fn find_leaf_page(&self, key : K) -> Option<&Box<node::Node<K,V>>> {
 
         let mut cur_node : &Option<Box<node::Node<K,V>>> = &self.root;
@@ -48,38 +88,6 @@ where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
         }
         None
     }
-
-}
-
-// put method
-impl <K,V> BTree<K,V>
-where K : PartialOrd + Copy + std::fmt::Debug, V : Copy
-{
-
-
-    pub fn insert(&mut self, key : K, value : V) {
-        // the B+Tree is empty
-        {
-            match &self.root {
-                None => { self.root = Some(Box::new(Node::Leaf(LeafNode::new()))); },
-                _ => {},
-            }
-        }
-
-        // insert to root
-        let new_node = self.root.as_mut().unwrap().insert(key,value);
-
-        // update root if possible
-        new_node.map(|n| {
-            self.root = Some(Box::new(Node::Internal(InternalNode::new_from(
-                n.get_up_key(), self.root.take().unwrap(),n))));
-        });
-
-        // end one-layer case
-        // end insert
-    }
-
-
 }
 
 mod tests {
@@ -100,7 +108,7 @@ mod tests {
 
         for i in 0..test_num {
             println!("try get {}",i);
-            let v = t.get(i);
+            let v = t.get(&i);
             assert_ne!(v,None);
             assert_eq!(v.unwrap(), i + 73);
             println!("try get {} done",i);
@@ -139,7 +147,7 @@ mod tests {
             }                                           //
                                                         //
             for k in &key_set {                         //
-                assert_eq!(t.get(*k).unwrap(), k + 73); //
+                assert_eq!(t.get(k).unwrap(), k + 73); //
             }                                           //
                                                         //
         }                                               //

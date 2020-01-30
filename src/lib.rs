@@ -7,6 +7,17 @@ pub mod key;
 pub mod tree;
 pub mod lr;
 
+// KV interfaces
+pub trait KV<K,V>
+where V : Copy
+{
+
+    fn insert(&mut self, k : K, v : V);
+    fn get(&self, k : &K) -> Option<V>;
+
+    fn get_as_ref(&self, k : &K) -> Option<&V>;
+}
+
 extern crate libc;
 pub use libc::{c_double};
 

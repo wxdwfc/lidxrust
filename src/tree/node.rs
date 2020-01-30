@@ -20,10 +20,18 @@ pub struct LeafNode <K,V> {
 impl <K,V> LeafNode<K,V>
 where K : PartialOrd + Copy + std::fmt::Debug, V : Copy
 {
-    pub fn get_ref(&mut self, k :& K) -> Option<&mut V> {
+    pub fn get_as_mut_ref(&mut self, k :& K) -> Option<&mut V> {
         let (find,idx) = self.find(k);
         if find {
             return Some (&mut self.values[idx]);
+        }
+        return None;
+    }
+
+    pub fn get_as_ref(&self, k :& K) -> Option<&V> {
+        let (find,idx) = self.find(k);
+        if find {
+            return Some (& self.values[idx]);
         }
         return None;
     }
@@ -366,7 +374,7 @@ mod tests {
         let mut a = TestLeaf::new();
 
         a.insert(12,12);
-        let r = a.get_ref(&12).unwrap();
+        let r = a.get_as_mut_ref(&12).unwrap();
         *r = 12;
         println!("{}",r);
     }
