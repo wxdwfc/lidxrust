@@ -11,12 +11,14 @@ pub struct Trainer {
     pub value_set : Vec<c_double>,
 }
 
-use crate::basic_type::Trainiable;
+use crate::Trainiable;
 use crate::mkl::*;
 
 impl Trainer {
     pub fn new() -> Self {
-        Trainer { key_set : Vec::new(), value_set : Vec::new() }
+        Trainer {
+            key_set : Vec::new(), value_set : Vec::new()
+        }
     }
 
     pub fn add_one<K,V>(&mut self, k : K, v : V)

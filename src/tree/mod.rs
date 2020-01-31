@@ -13,9 +13,9 @@ impl<K : PartialOrd + std::fmt::Debug ,V> BTree<K,V> {
 }
 
 // trait implementations
-use crate::KV;
+use crate::KVInterface;
 
-impl<K,V> KV<K,V> for BTree<K,V>
+impl<K,V> KVInterface<K,V> for BTree<K,V>
 where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
 {
     fn get(&self, key : &K) -> Option<V> {
