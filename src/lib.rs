@@ -4,6 +4,7 @@ pub mod key;
 
 pub mod tree;
 pub mod lr;
+pub mod rmi;
 
 pub struct KVPair<K,V>
 where K : PartialOrd + Copy + std::fmt::Debug + Trainiable, V : Copy

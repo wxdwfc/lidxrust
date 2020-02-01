@@ -27,7 +27,6 @@ struct LRIndex
     err_max : i64,
 }
 
-
 use std::cmp;
 use crate::KVPair;
 use crate::Trainiable;
