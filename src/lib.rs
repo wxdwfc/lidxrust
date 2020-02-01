@@ -22,6 +22,19 @@ where K : PartialOrd + Copy + std::fmt::Debug + Trainiable , V : Copy
 
 use std::cmp::Ordering;
 
+impl<K,V> Ord for KVPair<K,V>
+where K : PartialOrd + Copy + std::fmt::Debug + Trainiable, V : Copy
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.key.partial_cmp(&other.key).unwrap()
+    }
+}
+
+impl<K,V> Eq for KVPair<K,V>
+where K : PartialOrd + Copy + std::fmt::Debug + Trainiable, V : Copy
+{
+}
+
 impl<K,V> PartialOrd for KVPair<K,V>
 where K : PartialOrd + Copy + std::fmt::Debug + Trainiable, V : Copy
 {

@@ -19,14 +19,7 @@ impl<K,V> KVInterface<K,V> for BTree<K,V>
 where K : PartialOrd + Copy + std::fmt::Debug, V : Copy + std::fmt::Debug
 {
     fn get(&self, key : &K) -> Option<V> {
-        self.find_leaf_page(*key).map(|n| {
-            match **n {
-                Node::Internal(_) => unreachable!(),
-                Node::Leaf(ref l) => {
-                    l.get(key)
-                }
-            }
-        }).and_then(|n| n)
+        self.get_as_ref(key).map(|v| *v)
     }
 
     fn get_as_ref(&self, key : &K) -> Option<&V> {
