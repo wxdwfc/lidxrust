@@ -69,6 +69,15 @@ pub trait LidxKV<K,Addr> {
     fn predict(&self, k : &K) -> (Addr,Addr);
 }
 
+/// Trait for training
+pub trait LidxKVTrainwArray<K>
+where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
+{
+    fn train<V : Copy>(&mut self, array : Vec<KVPair<K,V>>);
+}
+
+// some minor helpers
+
 pub use libc::{c_double};
 extern crate libc;
 

@@ -91,8 +91,6 @@ where K : PartialOrd + Copy + std::fmt::Debug + Trainiable, V : Copy
 
         // calculate the min-max
         self.index.unwrap().calculate_min_max(&self.sorted_array);
-
-        println!("retrain done {:?}", self.index.unwrap());
     }
 }
 
@@ -143,6 +141,7 @@ mod tests {
         println!("insert done");
 
         t.retrain();
+        println!("retrain done {:?}", self.index.unwrap());
 
         for i in 0..test_num {
             //println!("try get {}",i);
