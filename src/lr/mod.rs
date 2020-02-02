@@ -5,24 +5,6 @@ pub mod trainer;
 struct LRPredictor {
     w : f64,
     b : f64,
-}
-
-impl LRPredictor {
-    pub fn new(t : &mut trainer::Trainer) -> Self {
-        let (w,b) = t.train_optimal();
-        LRPredictor { w : w, b : b}
-    }
-
-    pub fn predict(&self,x : &f64) -> f64 {
-        self.w * (*x) + self.b
-    }
-}
-
-#[derive(Clone,Copy,Debug)]
-struct LRIndex
-{
-    lr : Option<LRPredictor>,
-
     err_min : i64,
     err_max : i64,
 }
@@ -31,66 +13,80 @@ use std::cmp;
 use crate::KVPair;
 use crate::Trainiable;
 
-impl LRIndex {
-    pub fn new(lr : LRPredictor) -> Self {
-        LRIndex { lr : Some(lr), err_min : 0, err_max : 0 }
+impl LRPredictor {
+    pub fn new() -> Self {
+        LRPredictor { w : 0_f64, b : 0_f64, err_min : std::i64::MAX, err_max : std::i64::MIN}
     }
 
-    pub fn calculate_min_max<K,V>(&mut self, sorted_array : &Vec<KVPair<K,V>>)
-    where K : PartialOrd + Copy + std::fmt::Debug + Trainiable, V : Copy
-    {
-        self.err_min = std::i64::MAX;
-        self.err_max = std::i64::MIN;
+    pub fn predict_temp(&self,x : &f64) -> f64 {
+        self.w * (*x) + self.b
+    }
 
-        for (real_pos,kv) in sorted_array.iter().enumerate() {
-            let predicted_pos = self.lr.expect("lr should be trained to calculate min_max")
-                .predict(&kv.key.convert_to_cdouble()).ceil() as i64;
-            self.err_min = cmp::min(self.err_min, real_pos as i64 - predicted_pos);
-            self.err_max = cmp::max(self.err_max, real_pos as i64 - predicted_pos);
-        }
+    pub fn predict_temp_to_i64(&self, x : &f64) -> i64 {
+        self.predict_temp(x).ceil() as i64
     }
 }
+
 
 use crate::LidxKV;
 
-impl LidxKV<f64, i64> for LRIndex
-{
-    fn predict(&self, k : &f64) -> (i64,i64) {
-        let predict_pos = self.lr.as_ref().expect("lr should be trained to use").predict(k);
-        let start_pos = (predict_pos as i64) + self.err_min;
-        let end_pos   = (predict_pos as i64) + self.err_max;
-        (start_pos,end_pos)
-    }
-}
-
-struct LRKV<K,V>
+pub struct LRKV<K,V>
 where K : PartialOrd + Copy + std::fmt::Debug + Trainiable, V : Copy
 {
     sorted_array : Vec<KVPair<K,V>>,
-    index : Option<LRIndex>,
+    index : LRPredictor,
 }
 
 impl<K,V> LRKV<K,V>
 where K : PartialOrd + Copy + std::fmt::Debug + Trainiable, V : Copy
 {
     pub fn new() -> Self {
-        LRKV { sorted_array : Vec::new(), index : None }
+        LRKV { sorted_array : Vec::new(), index : LRPredictor::new() }
     }
 
     pub fn retrain(&mut self) {
-        let mut training_set = trainer::Trainer::new();
         self.sorted_array.sort();
+        self.index.train(&self.sorted_array);
+    }
+}
 
-        for (i,kv) in self.sorted_array.iter().enumerate() {
+use crate::LidxKVTrainwArray;
+
+impl<K> LidxKVTrainwArray<K> for LRPredictor
+where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
+{
+    /// assumption: array is sorted
+    fn train<V : Copy>(&mut self, array : &Vec<KVPair<K,V>>) {
+
+        // reset
+        *self = LRPredictor::new();
+
+        let mut training_set = trainer::Trainer::new();
+        for (i,kv) in array.iter().enumerate() {
             training_set.add_one(kv.key.convert_to_cdouble(), i.convert_to_cdouble());
         }
 
-        // reatrain the model, replace the old one
-        self.index.take();
-        self.index = Some(LRIndex::new(LRPredictor::new(&mut training_set)));
+        let (w, b) = training_set.train_optimal();
+        self.w = w;
+        self.b = b;
 
-        // calculate the min-max
-        self.index.unwrap().calculate_min_max(&self.sorted_array);
+        // then we calculate the min-max
+        for (real_pos,kv) in array.iter().enumerate() {
+            let predicted_pos = self.predict_temp_to_i64(&kv.key.convert_to_cdouble());
+            self.err_min = cmp::min(self.err_min, real_pos as i64 - predicted_pos);
+            self.err_max = cmp::max(self.err_max, real_pos as i64 - predicted_pos);
+        }
+    }
+}
+
+impl<K> LidxKV<K,usize> for LRPredictor
+where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
+{
+    fn predict(&self, k : &K) -> (usize, usize) {
+        let mid = self.predict_temp_to_i64(&k.convert_to_cdouble());
+        let start = cmp::max(mid + self.err_min, 0);
+        let end   = mid + self.err_max;
+        (start as usize, end as usize)
     }
 }
 
@@ -105,13 +101,10 @@ where K : PartialOrd + Copy + std::fmt::Debug + Trainiable, V : Copy + std::fmt:
     }
 
     fn get_as_ref(&self, key : &K) -> Option<&V> {
-        let (mut start,mut end) = self.index.expect("lr should be trained to predict").predict(&key.convert_to_cdouble());
-        start = cmp::max(start, 0);
-        end = cmp::min(end, self.sorted_array.len() as i64 - 1);
+        let (start,end) = self.index.predict(&key.convert_to_cdouble());
+        let aug_end = cmp::min(end + 1, self.sorted_array.len());
 
-        //println!("search range {},{}", start,end);
-
-        for idx in start..end+1 {
+        for idx in start..aug_end {
             if self.sorted_array[idx as usize].key == *key {
                 return Some(& self.sorted_array[idx as usize].value);
             }
@@ -141,7 +134,7 @@ mod tests {
         println!("insert done");
 
         t.retrain();
-        println!("retrain done {:?}", self.index.unwrap());
+        println!("retrain done {:?}", t.index);
 
         for i in 0..test_num {
             //println!("try get {}",i);

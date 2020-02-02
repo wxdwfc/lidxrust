@@ -73,7 +73,7 @@ pub trait LidxKV<K,Addr> {
 pub trait LidxKVTrainwArray<K>
 where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
 {
-    fn train<V : Copy>(&mut self, array : Vec<KVPair<K,V>>);
+    fn train<V : Copy>(&mut self, array : &Vec<KVPair<K,V>>);
 }
 
 // some minor helpers
