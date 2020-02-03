@@ -2,7 +2,7 @@ pub mod trainer;
 
 // the predictort
 #[derive(Clone,Copy,Debug)]
-struct LRPredictor {
+pub struct LRPredictor {
     w : f64,
     b : f64,
     err_min : i64,
@@ -27,7 +27,6 @@ impl LRPredictor {
     }
 }
 
-
 use crate::LidxKV;
 
 pub struct LRKV<K,V>
@@ -42,6 +41,10 @@ where K : PartialOrd + Copy + std::fmt::Debug + Trainiable, V : Copy
 {
     pub fn new() -> Self {
         LRKV { sorted_array : Vec::new(), index : LRPredictor::new() }
+    }
+
+    pub fn print_index(&self) {
+        println!("{:?}", self.index);
     }
 
     pub fn retrain(&mut self) {

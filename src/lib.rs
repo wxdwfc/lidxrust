@@ -96,3 +96,15 @@ impl Trainiable for f64 {
         *self as c_double
     }
 }
+
+impl Trainiable for u64 {
+    fn convert_to_cdouble(&self) -> c_double {
+        *self as c_double
+    }
+}
+
+impl Trainiable for i32 {
+    fn convert_to_cdouble(&self) -> c_double {
+        *self as c_double
+    }
+}
