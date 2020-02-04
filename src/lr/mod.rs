@@ -82,6 +82,33 @@ where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
     }
 }
 
+use crate::LidxKVTrainwAddr;
+
+impl<K> LidxKVTrainwAddr<K,usize> for LRPredictor
+where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
+{
+    fn train_w_addr(&mut self, array : &Vec<(K,usize)>) {
+        // reset
+        *self = LRPredictor::new();
+
+        let mut training_set = trainer::Trainer::new();
+        for (k,addr) in array {
+            training_set.add_one(k.convert_to_cdouble(), addr.convert_to_cdouble());
+        }
+
+        let (w, b) = training_set.train_optimal();
+        self.w = w;
+        self.b = b;
+
+        // then we calculate the min-max
+        for (k,addr) in array {
+            let predicted_pos = self.predict_temp_to_i64(&k.convert_to_cdouble());
+            self.err_min = cmp::min(self.err_min, *addr as i64 - predicted_pos);
+            self.err_max = cmp::max(self.err_max, *addr as i64 - predicted_pos);
+        }
+    }
+}
+
 impl<K> LidxKV<K,usize> for LRPredictor
 where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
 {
@@ -90,6 +117,10 @@ where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
         let start = cmp::max(mid + self.err_min, 0);
         let end   = mid + self.err_max;
         (start as usize, end as usize)
+    }
+
+    fn predict_point(&self, k : &K) -> usize {
+        cmp::max(self.predict_temp_to_i64(&k.convert_to_cdouble()), 0) as usize
     }
 }
 

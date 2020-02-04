@@ -67,6 +67,8 @@ where V : Copy
 // the address type is Addr
 pub trait LidxKV<K,Addr> {
     fn predict(&self, k : &K) -> (Addr,Addr);
+
+    fn predict_point(&self, k : &K) -> Addr;
 }
 
 /// Trait for training
@@ -74,6 +76,14 @@ pub trait LidxKVTrainwArray<K>
 where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
 {
     fn train<V : Copy>(&mut self, array : &Vec<KVPair<K,V>>);
+}
+
+
+// Trait for training with customized address
+pub trait LidxKVTrainwAddr<K,Addr>
+where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
+{
+    fn train_w_addr(&mut self, array : &Vec<(K,Addr)>);
 }
 
 // some minor helpers
