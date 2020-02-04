@@ -25,6 +25,23 @@ impl LRPredictor {
     pub fn predict_temp_to_i64(&self, x : &f64) -> i64 {
         self.predict_temp(x).ceil() as i64
     }
+
+    pub fn get_w(&self) -> f64 {
+        self.w
+    }
+
+    pub fn get_b(&self) -> f64 {
+        self.b
+    }
+
+    pub fn get_error_min(&self) -> i64 {
+        self.err_min
+    }
+
+    pub fn get_error_max(&self) -> i64 {
+        self.err_max
+    }
+
 }
 
 use crate::LidxKV;
