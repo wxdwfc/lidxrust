@@ -8,6 +8,7 @@ impl YCSBKeyGen {
         YCSBKeyGen { total_keys : tk, cur_idx : 0 }
     }
 
+    #[allow(dead_code)]
     pub fn reset(&mut self) {
         self.cur_idx = 0;
     }
@@ -57,5 +58,24 @@ impl<'a> Iterator for YCSBHashIter<'a> {
 impl YCSBKeyGen {
     pub fn into_hash_iter(&mut self) -> YCSBHashIter {
         YCSBHashIter { cur : &mut *self }
+    }
+}
+
+// the iterator which does not hash the key
+pub struct YCSBIter<'a> {
+    cur : &'a mut YCSBKeyGen,
+}
+
+impl<'a> Iterator for YCSBIter<'a> {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.cur.get_next_key()
+    }
+}
+
+impl YCSBKeyGen {
+    pub fn into_iter(&mut self) -> YCSBIter {
+        YCSBIter { cur : &mut *self }
     }
 }

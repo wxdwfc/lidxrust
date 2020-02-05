@@ -7,7 +7,7 @@ use crate::LidxKVTrainwAddr;
 
 use std::marker::PhantomData;
 
-struct BasicRMIIndex<K,FirstLayerLidx, SecondLayerLidx>
+pub struct BasicRMIIndex<K,FirstLayerLidx, SecondLayerLidx>
 where K : PartialOrd + Copy + std::fmt::Debug + Trainiable,
 FirstLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K>,
 SecondLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K> + LidxKVTrainwAddr<K,usize>,
@@ -20,18 +20,24 @@ SecondLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K> + LidxKVTrainwA
 
 impl<K,FirstLayerLidx, SecondLayerLidx> BasicRMIIndex<K,FirstLayerLidx, SecondLayerLidx>
 where K : PartialOrd + Copy + std::fmt::Debug + Trainiable,
-FirstLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K>,
+FirstLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K> + std::fmt::Debug,
 SecondLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K> + LidxKVTrainwAddr<K,usize>,
 {
-    pub fn new() -> Self {
-        unimplemented!();
+    pub fn new(f : FirstLayerLidx, sec : Vec<SecondLayerLidx>) -> Self {
+        Self { first_layer : f, second_layer : sec, total_keys : 0, phantom : PhantomData }
     }
 
     pub fn find_second_layer(&self,k : &K) -> usize {
+        // pre-conditions
         assert!(self.second_layer.len() > 0);
+        assert!(self.total_keys > 0);
+
         let mut pos = self.first_layer.predict_point(k);
-        pos = std::cmp::max(0,pos) % self.total_keys;
-        std::cmp::min(pos, self.second_layer.len() - 1)
+        pos = std::cmp::min(std::cmp::max(0,pos), self.total_keys - 1);
+
+        let ratio = (pos as f64) / ((self.total_keys - 1) as f64);
+        std::cmp::min((ratio * self.second_layer.len() as f64).ceil() as usize,
+                      self.second_layer.len() - 1)
     }
 }
 
@@ -39,10 +45,13 @@ use crate::KVPair;
 
 impl<K,FirstLayerLidx, SecondLayerLidx> LidxKVTrainwArray<K> for BasicRMIIndex<K,FirstLayerLidx,SecondLayerLidx>
 where K : PartialOrd + Copy + std::fmt::Debug + Trainiable + std::cmp::Eq,
-FirstLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K>,
+FirstLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K> + std::fmt::Debug,
 SecondLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K> + LidxKVTrainwAddr<K,usize>,
 {
     fn train<V : Copy>(&mut self, array : &Vec<KVPair<K,V>>) {
+
+        self.total_keys = array.len();
+
         // 1. train the first layers
         self.first_layer.train::<V>(array);
 
@@ -61,8 +70,27 @@ SecondLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K> + LidxKVTrainwA
 
         // 2.2 train each training set
         for i in 0..self.second_layer.len() {
+            if partitioned_t_set[i].len() > 0 {
+                //println!("train {}, {}",i,partitioned_t_set[i].len());
+            }
             self.second_layer[i].train_w_addr(&partitioned_t_set[i]);
         }
         // done
+    }
+}
+
+impl<K,FirstLayerLidx, SecondLayerLidx> LidxKV<K,usize> for BasicRMIIndex<K,FirstLayerLidx,SecondLayerLidx>
+where K : PartialOrd + Copy + std::fmt::Debug + Trainiable + std::cmp::Eq,
+FirstLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K> + std::fmt::Debug,
+SecondLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K> + LidxKVTrainwAddr<K,usize>,
+{
+    fn predict(&self, k : &K) -> (usize,usize) {
+        let model_idx = self.find_second_layer(k);
+        self.second_layer[model_idx].predict(k)
+    }
+
+    fn predict_point(&self, k : &K) -> usize {
+        let model_idx = self.find_second_layer(k);
+        self.second_layer[model_idx].predict_point(k)
     }
 }

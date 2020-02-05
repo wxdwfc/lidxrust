@@ -1,9 +1,5 @@
 use lidx::lr::LRPredictor;
 
-fn approx_equal(a: f64, b: f64, p : f64) -> bool {
-    (a - b).abs() <= p
-}
-
 use lidx::LidxKVTrainwAddr;
 use lidx::LidxKVTrainwArray;
 

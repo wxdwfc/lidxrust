@@ -105,6 +105,11 @@ impl<K> LidxKVTrainwAddr<K,usize> for LRPredictor
 where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
 {
     fn train_w_addr(&mut self, array : &Vec<(K,usize)>) {
+
+        if array.len() == 0 {
+            return;
+        }
+
         // reset
         *self = LRPredictor::new();
 
