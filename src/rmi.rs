@@ -59,13 +59,16 @@ SecondLayerLidx : Sized + LidxKV<K,usize> + LidxKVTrainwArray<K> + LidxKVTrainwA
         let mut partitioned_t_set : Vec<Vec<(K,usize)>> = Vec::new();
 
         // 2.0 init the training-set of each rmi leaf node
-        for _ in 0..self.second_layer.len() {
+        for i in 0..self.second_layer.len() {
             partitioned_t_set.push(Vec::new());
+            partitioned_t_set[i].reserve(array.len() / self.second_layer.len());
         }
 
         // 2.1 fill the training-set
         for (i,kv) in array.iter().enumerate() {
-            partitioned_t_set[self.find_second_layer(&kv.key)].push((kv.key,i));
+            let idx = self.find_second_layer(&kv.key);
+            partitioned_t_set[idx].push((kv.key,i));
+
         }
 
         // 2.2 train each training set

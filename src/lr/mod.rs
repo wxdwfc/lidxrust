@@ -81,6 +81,9 @@ where K : PartialOrd + Copy + std::fmt::Debug + Trainiable
         // reset
         *self = LRPredictor::new();
 
+        // sort
+        //array.sort();
+
         let mut training_set = trainer::Trainer::new();
         for (i,kv) in array.iter().enumerate() {
             training_set.add_one(kv.key.convert_to_cdouble(), i.convert_to_cdouble());
